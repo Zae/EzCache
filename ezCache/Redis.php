@@ -11,6 +11,10 @@ class ezCache_Redis extends ezCache {
 		print_r($this->_stats);
 		echo '</pre>';
 
+		echo '<pre>';
+		print_r($this->_non_persistent_groups);
+		echo '</pre>';
+
 		$this->_memory->dump();
 	}
 
@@ -37,41 +41,50 @@ class ezCache_Redis extends ezCache {
 	}
 
 	public function close() {
+		$this->_memory->close();
 		return $this->_redis->close();
 	}
 
 	public function delete($key, $group = 'default') {
 		global $blog_id;
 
+		$group = self::_sanitizeGroup($group);
+		$b_id = $this->_sanitizeBlogId($blog_id, $group);
+
 		$this->_memory->delete($key, $group);
-		return $this->_redis->delete($this->key($blog_id, $key, $group));
+		return $this->_redis->delete($this->key($b_id, $key, $group));
 	}
 
 	public function exists($key, $group) {
 		global $blog_id;
 
-		return ($this->_memory->exists($key, $group) || $this->_redis->exists($this->key($blog_id, $key, $group)));
+		$group = self::_sanitizeGroup($group);
+		$b_id = $this->_sanitizeBlogId($blog_id, $group);
+
+		return ($this->_memory->exists($key, $group) || $this->_redis->exists($this->key($b_id, $key, $group)));
 	}
 
 	public function flush() {
-		global $blog_id;
-
 		$this->_memory->flush();
-
-		$keys = $this->_redis->keys($blog_id . '*');
+		
+		$keys = $this->_redis->keys('*');
 		return $this->_redis->delete($keys);
 	}
 
 	public function get($key, $group = 'default', $force = false, &$found = null) {
 		global $blog_id;
 
+		$group = self::_sanitizeGroup($group);
+		
 		$found = $this->_memory->exists($key, $group);
 
 		if ($found) {
 			$data = $this->_memory->get($key, $group, $force, $found);
 		} else {
-			$data = $this->_redis->get($this->key($blog_id, $key, $group));
-			$this->_memory->set($key, $data, $group, $this->_redis->ttl($this->key($blog_id, $key, $group)));
+			$b_id = $this->_sanitizeBlogId($blog_id, $group);
+			
+			$data = $this->_redis->get($this->key($b_id, $key, $group));
+			$this->_memory->set($key, $data, $group, $this->_redis->ttl($this->key($b_id, $key, $group)));
 
 			if ($data !== FALSE) {
 				$this->_stats['hit'] ++;
@@ -91,8 +104,14 @@ class ezCache_Redis extends ezCache {
 			$expire = 86400;
 		}
 
-		$this->_memory->set($key, $data, $group, $expire);
-		return $this->_redis->setex($this->key($blog_id, $key, $group), $expire, $data);
+		$group = self::_sanitizeGroup($group);
+
+		$m = $this->_memory->set($key, $data, $group, $expire);
+		if (!in_array($group, $this->_non_persistent_groups, TRUE)) {
+			$b_id = $this->_sanitizeBlogId($blog_id, $group);
+			return $this->_redis->setex($this->key($b_id, $key, $group), $expire, $data);
+		}
+		return $m;
 	}
 
 	public function add($key, $data, $group = 'default', $expire = 0) {
@@ -106,17 +125,27 @@ class ezCache_Redis extends ezCache {
 	public function incr($key, $offset = 1, $group = 'default') {
 		global $blog_id;
 
-		return $this->_redis->incrBy($this->key($blog_id, $key, $group), $offset);
+		$group = self::_sanitizeGroup($group);
+		$b_id = $this->_sanitizeBlogId($blog_id, $group);
+
+		return $this->_redis->incrBy($this->key($b_id, $key, $group), $offset);
 	}
 
 	public function decr($key, $offset = 1, $group = 'default') {
 		global $blog_id;
 
-		return $this->_redis->decrBy($this->key($blog_id, $key, $group), $offset);
+		$group = self::_sanitizeGroup($group);
+		$b_id = $this->_sanitizeBlogId($blog_id, $group);
+
+		return $this->_redis->decrBy($this->key($b_id, $key, $group), $offset);
 	}
 
 	public function reset() {
 		return $this->_memory->reset();
+	}
+
+	public function add_global_groups($groups) {
+		return (parent::add_global_groups($groups) && $this->_memory->add_global_groups($groups));
 	}
 
 	protected function key($blog_id, $key, $group = 'default') {

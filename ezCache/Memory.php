@@ -13,6 +13,14 @@ class ezCache_Memory extends ezCache {
 		echo '<pre>';
 		print_r($this->_cache);
 		echo '</pre>';
+
+		echo '<pre>';
+		print_r($this->_global_groups);
+		echo '</pre>';
+
+		echo '<pre>';
+		print_r($this->_non_persistent_groups);
+		echo '</pre>';
 	}
 
 	public function __construct($config = NULL) {
@@ -36,11 +44,14 @@ class ezCache_Memory extends ezCache {
 	public function get($key, $group = 'default', $force = false, &$found = null) {
 		global $blog_id;
 
+		$group = empty($group) ? 'default' : $group;
+		$b_id = (in_array($group, $this->_global_groups, TRUE)) ? 0 : $blog_id;
+
 		$found = $this->exists($key, $group);
 
 		if ($found) {
 			$this->_stats['hit'] ++;
-			return $this->_cache[$blog_id][$group][$key]['data'];
+			return $this->_cache[$b_id][$group][$key]['data'];
 		}
 
 		$this->_stats['miss'] ++;
@@ -50,7 +61,10 @@ class ezCache_Memory extends ezCache {
 	public function set($key, $data, $group = 'default', $expire = 0) {
 		global $blog_id;
 
-		$this->_cache[$blog_id][$group][$key] = array(
+		$group = empty($group) ? 'default' : $group;
+		$b_id = (in_array($group, $this->_global_groups, TRUE)) ? 0 : $blog_id;
+
+		$this->_cache[$b_id][$group][$key] = array(
 			'data' => $data,
 			'expire' => (empty($expire)) ? 0 : (time() + $expire)
 		);
@@ -69,19 +83,25 @@ class ezCache_Memory extends ezCache {
 	public function delete($key, $group = 'default') {
 		global $blog_id;
 
-		unset($this->_cache[$blog_id][$group][$key]);
+		$group = empty($group) ? 'default' : $group;
+		$b_id = (in_array($group, $this->_global_groups, TRUE)) ? 0 : $blog_id;
+
+		unset($this->_cache[$b_id][$group][$key]);
 		return true;
 	}
 
 	public function exists($key, $group = 'default') {
 		global $blog_id;
 
+		$group = empty($group) ? 'default' : $group;
+		$b_id = (in_array($group, $this->_global_groups, TRUE)) ? 0 : $blog_id;
+
 		if (
-				isset($this->_cache[$blog_id][$group][$key]) &&
-				isset($this->_cache[$blog_id][$group][$key]['expire']) &&
+				isset($this->_cache[$b_id][$group][$key]) &&
+				isset($this->_cache[$b_id][$group][$key]['expire']) &&
 				(
-				$this->_cache[$blog_id][$group][$key]['expire'] === 0 ||
-				$this->_cache[$blog_id][$group][$key]['expire'] > time()
+					$this->_cache[$b_id][$group][$key]['expire'] === 0 ||
+					$this->_cache[$b_id][$group][$key]['expire'] > time()
 				)
 		) {
 			return true;
@@ -105,6 +125,16 @@ class ezCache_Memory extends ezCache {
 	public function reset() {
 		$this->_cache = array();
 		return true;
+	}
+
+	public function __sleep() {
+		foreach($this->_cache as &$blog_cache) {
+			foreach($this->_non_persistent_groups as $non_persistent_group) {
+				unset($blog_cache[$non_persistent_group]);
+			}
+		}
+
+		return array('_cache');
 	}
 
 }

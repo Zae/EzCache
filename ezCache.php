@@ -51,4 +51,25 @@ spl_autoload_register(array('ezCacheLoader', 'autoload'), false);
 
 abstract class ezCache implements iezCache {
 	protected $_config;
+	protected $_global_groups = array();
+	protected $_non_persistent_groups = array();
+
+	public function add_global_groups($groups) {
+		$this->_global_groups = array_merge_recursive($this->_global_groups, $groups);
+		return true;
+	}
+	
+	public function add_non_persistent_groups($groups) {
+		$this->_non_persistent_groups = array_merge_recursive($this->_non_persistent_groups, $groups);
+		return true;
+	}
+
+	protected static function _sanitizeGroup($group) {
+		return empty($group) ? 'default' : $group;
+	}
+
+	protected function _sanitizeBlogId($blog_id, $group) {
+		return (in_array($group, $this->_global_groups, TRUE)) ? 0 : $blog_id;
+	}
+	
 }

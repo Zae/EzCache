@@ -20,7 +20,7 @@ class ezCache_Factory {
 			return new ezCache_Wincache($config);
 		}
 
-		return new ezCache_Memory();
+		return new ezCache_Disk($config);
 	}
 
 	public function __construct() {
