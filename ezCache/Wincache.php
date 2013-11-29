@@ -14,7 +14,7 @@ class ezCache_Wincache extends ezCache {
 	}
 
 	public function __construct($config) {
-		$this->_config = $config;
+		$this->_config = array_merge(self::$_config_default, $config);
 
 		$this->init();
 	}

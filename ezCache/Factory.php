@@ -2,7 +2,7 @@
 
 class ezCache_Factory {
 
-	public static function getCache($config = NULL) {
+	public static function getCache($config = array()) {
 
 		if (extension_loaded("redis")) {
 			return new ezCache_Redis($config);

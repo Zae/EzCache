@@ -79,7 +79,9 @@ if (!function_exists('wp_cache_incr')) {
 if (!function_exists('wp_cache_init')) {
 
 	function wp_cache_init() {
-		$GLOBALS['wp_object_cache'] = ezCache_Factory::getCache();
+		$config = class_exists('ezCache_Config') ? (array)new ezCache_Config() : array();
+
+		$GLOBALS['wp_object_cache'] = ezCache_Factory::getCache($config);
 		var_dump($GLOBALS['wp_object_cache']);
 	}
 
@@ -116,7 +118,9 @@ if (!function_exists('wp_cache_switch_to_blog')) {
 if (!function_exists('wp_cache_add_global_groups')) {
 
 	function wp_cache_add_global_groups($groups) {
-		return;
+		global $wp_object_cache;
+
+		return $wp_object_cache->add_global_groups($groups);
 	}
 
 }
@@ -124,8 +128,9 @@ if (!function_exists('wp_cache_add_global_groups')) {
 if (!function_exists('wp_cache_add_non_persistent_groups')) {
 
 	function wp_cache_add_non_persistent_groups($groups) {
-		// Default cache doesn't persist so nothing to do here.
-		return;
+		global $wp_object_cache;
+
+		return $wp_object_cache->add_non_persistent_groups($groups);
 	}
 
 }

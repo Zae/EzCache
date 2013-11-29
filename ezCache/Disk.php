@@ -7,6 +7,11 @@ class ezCache_Disk extends ezCache {
 	protected $_stats = array('hit' => 0, 'miss' => 0);
 	protected $_dirty = false;
 
+	protected static $_default_config = array(
+		'cachefile' => '_cache.dat',
+		'cachefolder' => WP_CONTENT_DIR
+	);
+
 	public function dump() {
 		echo '<pre>';
 		print_r($this->_stats);
@@ -20,8 +25,8 @@ class ezCache_Disk extends ezCache {
 	}
 
 	public function __construct($config) {
-		$this->_config = $config;
-		$this->_cachefile = WP_CONTENT_DIR.DIRECTORY_SEPARATOR.'_cache.dat';
+		$this->_config = array_merge(self::$_default_config, $config);
+		$this->_cachefile = $this->_config['cachefolder'].DIRECTORY_SEPARATOR.$this->_config['cachefile'];
 
 		$this->init();
 	}

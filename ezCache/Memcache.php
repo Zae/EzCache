@@ -6,6 +6,11 @@ class ezCache_Memcache extends ezCache {
 	protected $_memory;
 	protected $_stats = array('hit' => 0, 'miss' => 0);
 
+	protected static $_config_default = array(
+		'host' => 'localhost',
+		'port' => 11211
+	);
+
 	public function dump() {
 		echo '<pre>';
 		print_r($this->_stats);
@@ -15,7 +20,7 @@ class ezCache_Memcache extends ezCache {
 	}
 
 	public function __construct($config) {
-		$this->_config = $config;
+		$this->_config = array_merge(self::$_config_default, $config);
 
 		$this->init();
 	}
@@ -26,8 +31,7 @@ class ezCache_Memcache extends ezCache {
 
 	public function init() {
 		$this->_memcache = new Memcache();
-		$this->_memcache->connect('localhost', 11211);
-
+		$this->_memcache->connect($this->_config['host'], $this->_config['port']);
 		$this->_memory = new ezCache_Memory();
 
 		return !!($this->_memcache && $this->_memory);

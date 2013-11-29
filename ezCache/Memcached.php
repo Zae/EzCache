@@ -6,6 +6,15 @@ class ezCache_Memcached extends ezCache {
 	protected $_memory;
 	protected $_stats = array('hit' => 0, 'miss' => 0);
 
+	protected static $_config_default = array(
+		'host' => 'localhost',
+		'port' => 11211,
+		'options' => array(
+			Memcached::OPT_SERIALIZER => Memcached::SERIALIZER_PHP,
+			Memcached::OPT_PREFIX_KEY => 'myAppName:'
+		)
+	);
+
 	public function dump() {
 		echo '<pre>';
 		print_r($this->_stats);
@@ -15,7 +24,7 @@ class ezCache_Memcached extends ezCache {
 	}
 
 	public function __construct($config) {
-		$this->_config = $config;
+		$this->_config = array_merge(self::$_config_default, $config);
 
 		$this->init();
 	}
@@ -26,10 +35,8 @@ class ezCache_Memcached extends ezCache {
 
 	public function init() {
 		$this->_memcached = new Memcached();
-		$this->_memcached->addServer('localhost', 11211);
-
-		$this->_memcached->setOption(Memcached::OPT_SERIALIZER, Memcached::SERIALIZER_PHP);
-		$this->_memcached->setOption(Memcached::OPT_PREFIX_KEY, 'myAppName:');
+		$this->_memcached->addServer($this->_config['host'], $this->_config['port']);
+		$this->_memcached->setOptions($this->_config['options']);
 
 		$this->_memory = new ezCache_Memory();
 

@@ -6,6 +6,15 @@ class ezCache_Redis extends ezCache {
 	protected $_memory;
 	protected $_stats = array('hit' => 0, 'miss' => 0);
 
+	protected static $_config_default = array(
+		'host' => '127.0.0.1',
+		'port' => 6379,
+		'options' => array(
+			Redis::OPT_SERIALIZER => Redis::SERIALIZER_PHP,
+			Redis::OPT_PREFIX => 'myAppName:'
+		)
+ 	);
+
 	public function dump() {
 		echo '<pre>';
 		print_r($this->_stats);
@@ -19,7 +28,7 @@ class ezCache_Redis extends ezCache {
 	}
 
 	public function __construct($config) {
-		$this->_config = $config;
+		$this->_config = array_merge(self::$_config_default, $config);
 
 		$this->init();
 	}
@@ -29,11 +38,13 @@ class ezCache_Redis extends ezCache {
 	}
 
 	public function init() {
+		var_dump($this->_config);
 		$this->_redis = new Redis();
-		$this->_redis->connect('127.0.0.1', 6379);
+		$this->_redis->connect($this->_config['host'], $this->_config['port']);
 
-		$this->_redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_PHP);
-		$this->_redis->setOption(Redis::OPT_PREFIX, 'myAppName:');
+		foreach ($this->_config['options'] as $key => $option) {
+			$this->_redis->setOption($key, $option);
+		}
 
 		$this->_memory = new ezCache_Memory();
 
